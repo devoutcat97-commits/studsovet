@@ -108,6 +108,19 @@ service cloud.firestore {
       allow delete: if isMember() && resource.data.uid == request.auth.uid;
     }
 
+    // «Руководителям»: пишет руководство, читают руководство и руководители/главы с заместителями.
+    match /leads/{id} {
+      allow read: if isTop() || isSecretary() || (isMember() && me().get('heads', []).size() > 0);
+      allow write: if isTop() || isSecretary();
+    }
+
+    // Отчёты об ошибках: отправляет любой участник, читает и закрывает только админ.
+    match /bugs/{id} {
+      allow create: if isMember() && request.resource.data.uid == request.auth.uid
+        && request.resource.data.text is string && request.resource.data.text.size() <= 2000;
+      allow read, update, delete: if isAdmin();
+    }
+
     match /proposals/{id} {
       allow read: if isMember();
       allow create: if isMember() && request.resource.data.authorUid == request.auth.uid

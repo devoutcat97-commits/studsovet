@@ -310,3 +310,7 @@ body:has(.projector){max-width:none}
 .avapick .cam svg.i{width:16px;height:16px}.avapick:hover .cam{transform:scale(1.08)}
 .avapick:focus-within{outline:3px solid var(--gold);outline-offset:3px}
 .prof .link{margin-top:4px}
+
+/* Анимация появления не должна «запоминать» подъём кнопки над тостом. */
+.enter .fab{animation-fill-mode:backwards}
+.row.danger b{color:var(--late)}.row.danger svg.i{color:var(--late)}

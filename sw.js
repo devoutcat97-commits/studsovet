@@ -1,7 +1,7 @@
 /* Работа без интернета: свои файлы берём из кэша, а в фоне обновляем.
    Запросы к Firebase и Apps Script не кэшируем — у них своя логика. */
-var CACHE = 'ss-v22';
-var FILES = ['./', 'index.html', 'css/styles.css?v=14', 'js/cloud-config.js?v=4', 'js/store.js?v=2', 'js/units.js?v=3', 'js/ui.js?v=4', 'js/seed.js?v=2', 'js/app.js?v=10', 'js/tasks.js?v=7', 'js/files.js?v=2', 'js/events.js?v=8', 'js/news.js?v=9', 'js/auth.js?v=4', 'js/extra.js?v=2', 'js/search.js?v=2', 'js/push.js?v=1', 'js/cloud.js?v=7', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/logo-128.png'];
+var CACHE = 'ss-v23b';
+var FILES = ['./', 'index.html', 'css/styles.css?v=15', 'js/cloud-config.js?v=4', 'js/store.js?v=3', 'js/units.js?v=4', 'js/ui.js?v=6', 'js/seed.js?v=2', 'js/app.js?v=11', 'js/tasks.js?v=7', 'js/files.js?v=2', 'js/events.js?v=9', 'js/news.js?v=10', 'js/auth.js?v=5', 'js/lead.js?v=1', 'js/extra.js?v=3', 'js/search.js?v=2', 'js/push.js?v=2', 'js/cloud.js?v=8', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/logo-128.png'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(FILES); }).then(function () { return self.skipWaiting(); }));
@@ -27,9 +27,9 @@ self.addEventListener('fetch', function (e) {
 // Пуш от сервера: { data: { title, body, url, tag } } через Firebase Cloud Messaging.
 self.addEventListener('push', function (e) {
   var p = {};
-  try { p = e.data ? e.data.json() : {}; } catch (er) { p = { data: { title: 'Студсовет', body: e.data ? e.data.text() : '' } }; }
+  try { p = e.data ? e.data.json() : {}; } catch (er) { p = { data: { title: 'Студенческий совет', body: e.data ? e.data.text() : '' } }; }
   var d = p.data || p.notification || p;
-  e.waitUntil(self.registration.showNotification(d.title || 'Студсовет', {
+  e.waitUntil(self.registration.showNotification(d.title || 'Студенческий совет', {
     body: d.body || '', icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: d.tag || undefined, data: { url: d.url || '#home' }
   }));
 });

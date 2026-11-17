@@ -130,6 +130,10 @@
         return '<button class="row" data-go="news"><span style="flex:1"><span class="tag gold"><svg class="i"><use href="#star"/></svg>Важно</span><b style="margin-top:6px">' +
           esc(a.title) + '</b><small>Отметь, что ознакомлен(а)</small></span></button>';
       }).join('') + '</div>';
+      var ld = window.Leads ? Leads.unread(me) : [];
+      if (ld.length) html += '<div class="card"><h2>Руководителям <button class="link" data-go="leads">Открыть</button></h2>' + ld.slice(0, 2).map(function (p) {
+        return '<button class="row" data-go="leads"><span style="flex:1"><span class="tag ' + (p.kind === 'task' ? 'gold' : 'info') + '">' + (p.kind === 'task' ? 'Задача' : 'Информация') + '</span><b style="margin-top:6px">' + esc(p.title) + '</b></span></button>';
+      }).join('') + '</div>';
       if (props.length) html += '<div class="card"><h2>Предложения мероприятий</h2>' + props.map(Events.proposalRow).join('') + '</div>';
       var s = el(html + '</div></div>');
       Tasks.bindChecks(s, me);

@@ -132,6 +132,8 @@
         }).join('') +
         '<label class="row link" style="cursor:pointer"><svg class="i"><use href="#clip"/></svg>Прикрепить файл<input type="file" id="filein" hidden></label>' +
         '<p class="hint" id="fmsg">' + (Store.isCloud() ? 'Файлы лежат в папке мероприятия на Google Диске студсовета, открыть их можно только через приложение. До 10 МБ.' : 'В демо-режиме файлы не загружаются.') + '</p></div>' +
+        (ev.deleted ? '<div class="card"><p class="hint late">Мероприятие в корзине.</p></div>' : '') +
+        (!ev.deleted && (ev.ownerUid === me.id || Units.isTop(me)) ? '<div class="card"><button class="row danger" id="evdel"><svg class="i"><use href="#trash"/></svg><span><b>Удалить мероприятие</b><small>Попадёт в корзину вместе с задачами, руководство сможет вернуть</small></span></button></div>' : '') +
         (can && ts.length ? '<div class="card"><button class="row" id="savetpl" style="padding:4px 0"><svg class="i"><use href="#layers"/></svg><span><b>Сохранить как шаблон</b><small>Чек-лист со сроками «за N дней»</small></span></button></div>' : '') +
         '</div>');
       Tasks.bindChecks(s, me);
@@ -158,6 +160,15 @@
         if (d) { msg('Скачиваем…'); Files.download(d.dataset.dl).then(function () { msg('Готово.'); }).catch(function (er) { msg(er.message); }); }
         if (r) UI.confirm('Удалить файл? Он попадёт в корзину Диска.', 'Удалить', true).then(function (ok) { if (ok) Files.remove(r.dataset.rm).catch(function (er) { msg(er.message); }); });
       });
+      var dl = s.querySelector('#evdel');
+      if (dl) dl.addEventListener('click', function () {
+        UI.confirm('Удалить «' + ev.title + '»? Мероприятие и его задачи попадут в корзину.', 'Удалить', true).then(function (ok) {
+          if (!ok) return;
+          trash(ev, me, true);
+          UI.toast('Мероприятие в корзине', 'Вернуть', function () { trash(ev, me, false); App.show(); });
+          App.go('events');
+        });
+      });
       var st = s.querySelector('#savetpl');
       if (st) st.addEventListener('click', function () {
         UI.ask('Название шаблона', ev.title).then(function (name) {
@@ -181,6 +192,18 @@
       (names ? '<small>' + esc(names) + '</small>' : '') + '</span>' +
       (past ? '' : '<button class="btn sm' + (mine ? ' on' : ' ghost') + '" id="gobtn" aria-pressed="' + mine + '">' + (mine ? '<svg class="i"><use href="#ok"/></svg>Иду' : 'Иду') + '</button>') + '</div>' +
       '<button class="row link" id="icsbtn"><svg class="i"><use href="#calplus"/></svg>Добавить в календарь телефона</button></div>';
+  }
+
+  // В корзину и обратно: помечаем мероприятие и его задачи, ничего не стираем.
+  function trash(ev, me, on) {
+    var at = new Date().toISOString();
+    Store.list('tasks', true).forEach(function (t) {
+      if (t.eventId !== ev.id) return;
+      if (on && !t.deleted) { t.deleted = true; t.deletedWith = ev.id; Store.put('tasks', t); }
+      if (!on && t.deletedWith === ev.id) { delete t.deleted; delete t.deletedWith; t.deleted = false; Store.put('tasks', t); }
+    });
+    if (on) { ev.deleted = true; ev.deletedAt = at; ev.deletedBy = me.id; } else { ev.deleted = false; ev.deletedAt = null; ev.deletedBy = null; }
+    Store.put('events', ev);
   }
 
   function localInput(date) { return new Date(date - date.getTimezoneOffset() * 6e4).toISOString().slice(0, 16); }
@@ -304,5 +327,5 @@
   });
 
   window.Events = {
-    plate: plate, fromTemplate: fromTemplate, toTemplate: toTemplate, decide: decide, canEditEvent: canEditEvent, eventRow: eventRow, proposalRow: proposalRow, bindDecisions: bindDecisions, builtin: BUILTIN };
+    plate: plate, trash: trash, fromTemplate: fromTemplate, toTemplate: toTemplate, decide: decide, canEditEvent: canEditEvent, eventRow: eventRow, proposalRow: proposalRow, bindDecisions: bindDecisions, builtin: BUILTIN };
 })();

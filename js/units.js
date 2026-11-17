@@ -70,10 +70,14 @@
   function canApprovePeople(m) { return isTop(m); }
   function canSetAdmin(m) { return active(m) && !!m.isAdmin; }
   function canAnnounce(m) { return isTop(m) || isSecretary(m); }
+  // Раздел «Руководителям»: пишет руководство, читают руководители/главы и их заместители.
+  function canBrief(m) { return isTop(m) || isSecretary(m); }
+  function isHead(m) { return active(m) && (m.positions || []).some(function (p) { return p.unitId !== 'lead' && (p.post === 'head' || p.post === 'deputy'); }); }
+  function seesBrief(m) { return canBrief(m) || isHead(m); }
 
   window.Units = {
     all: UNITS, posts: POSTS, color: color, unit: unit, postName: postName, title: title, derive: derive,
     isTop: isTop, canManage: canManage, canManageAny: canManageAny, canDecide: canDecide,
-    canApprovePeople: canApprovePeople, canSetAdmin: canSetAdmin, canAnnounce: canAnnounce
+    canApprovePeople: canApprovePeople, canSetAdmin: canSetAdmin, canAnnounce: canAnnounce, canBrief: canBrief, isHead: isHead, seesBrief: seesBrief
   };
 })();

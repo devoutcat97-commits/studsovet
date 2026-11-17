@@ -112,7 +112,13 @@
         (Units.canApprovePeople(m) ? '<button class="row" data-go="people"><svg class="i"><use href="#users"/></svg><span style="flex:1"><b>Люди и заявки</b></span>' +
           (Store.list('requests').length ? '<span class="tag info">' + Store.list('requests').length + ' нов.</span>' : '<svg class="i"><use href="#next"/></svg>') + '</button>' : '') +
         (window.Push ? '<div class="row"><svg class="i"><use href="#mega"/></svg><span style="flex:1"><b>Уведомления</b><small id="pushst">' + UI.esc(Push.status()) + '</small></span>' +
-          '<button class="toggle" role="switch" id="pushsw" aria-label="Уведомления" aria-checked="' + Push.enabled() + '"></button></div>' : '') +
+          '<button class="toggle" role="switch" id="pushsw" aria-label="Уведомления" aria-checked="' + Push.enabled() + '"></button></div>' +
+          (Push.enabled() ? '<button class="row link" id="pushtest"><svg class="i"><use href="#send"/></svg>Прислать пробное уведомление</button>' : '') : '') +
+        (Units.seesBrief(m) ? '<button class="row" data-go="leads"><svg class="i"><use href="#flag"/></svg><span style="flex:1"><b>Руководителям</b><small>Задачи и информация от руководства</small></span>' +
+          (window.Leads && Leads.unread(m).length ? '<span class="tag info">' + Leads.unread(m).length + ' нов.</span>' : '<svg class="i"><use href="#next"/></svg>') + '</button>' : '') +
+        (Units.isTop(m) ? '<button class="row" data-go="trash"><svg class="i"><use href="#trash"/></svg><span style="flex:1"><b>Корзина</b><small>Удалённые мероприятия</small></span><svg class="i"><use href="#next"/></svg></button>' : '') +
+        (m.isAdmin ? '<button class="row" data-go="bugs"><svg class="i"><use href="#bug"/></svg><span style="flex:1"><b>Отчёты об ошибках</b></span>' +
+          (Store.list('bugs').filter(function (b) { return b.status !== 'done'; }).length ? '<span class="tag late">' + Store.list('bugs').filter(function (b) { return b.status !== 'done'; }).length + '</span>' : '<svg class="i"><use href="#next"/></svg>') + '</button>' : '') +
         '<button class="row" data-go="projector"><svg class="i"><use href="#screen"/></svg><span style="flex:1"><b>Режим проектора</b><small>Сводка крупно на весь экран для собраний</small></span><svg class="i"><use href="#next"/></svg></button>' +
         '<div class="row"><svg class="i"><use href="#moon"/></svg><span style="flex:1"><b>Тёмная тема</b></span>' +
         '<button class="toggle" role="switch" aria-label="Тёмная тема" aria-checked="' + (document.documentElement.dataset.theme === 'dark') + '"></button></div>' +
@@ -129,6 +135,12 @@
         btn.disabled = true; st.textContent = on ? 'Включаем…' : 'Выключаем…';
         (on ? Push.enable() : Push.disable()).then(function () { st.textContent = Push.status(); btn.setAttribute('aria-checked', Push.enabled()); })
           .catch(function (e) { st.textContent = e.message; st.classList.add('late'); }).then(function () { btn.disabled = false; });
+      });
+      var pt = el.querySelector('#pushtest');
+      if (pt) pt.addEventListener('click', function () {
+        pt.disabled = true; UI.toast('Отправляем… Уведомление придёт через несколько секунд.');
+        Push.test().then(function (r) { UI.toast(r.sent ? 'Отправлено на ' + r.sent + ' устр. Сверни приложение, чтобы увидеть.' : 'Не отправилось: ' + (r.error || 'устройство не найдено')); })
+          .catch(function (e) { UI.toast('Ошибка: ' + e.message); }).then(function () { pt.disabled = false; });
       });
       el.querySelector('[aria-label="Тёмная тема"]').addEventListener('click', function () {
         var dark = this.getAttribute('aria-checked') !== 'true';

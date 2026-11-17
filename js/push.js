@@ -65,6 +65,13 @@
     });
   }
 
+  // Пробное уведомление себе — проверить, что всё работает.
+  function test() {
+    return firebase.auth().currentUser.getIdToken().then(function (tok) {
+      return fetch(FILES_URL, { method: 'POST', body: JSON.stringify({ action: 'notify', type: 'test', idToken: tok }) });
+    }).then(function (r) { return r.json(); });
+  }
+
   function status() {
     if (!supported()) return 'Этот браузер не умеет уведомления. На iPhone добавь приложение на экран «Домой» и открой оттуда.';
     if (!ready()) return 'Уведомления работают в облачной версии.';
@@ -72,5 +79,5 @@
     return enabled() ? 'Включены на этом устройстве: сводка в 8:00 и 19:00, новые задачи, важные объявления, заявки и предложения.' : 'Выключены на этом устройстве.';
   }
 
-  window.Push = { enable: enable, disable: disable, enabled: enabled, notify: notify, status: status };
+  window.Push = { test: test, enable: enable, disable: disable, enabled: enabled, notify: notify, status: status };
 })();

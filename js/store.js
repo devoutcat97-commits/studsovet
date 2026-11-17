@@ -23,7 +23,8 @@
   function id() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
   window.Store = {
-    list: function (name) { return Object.values(col(name)); },
+    // Удалённое в корзину (deleted: true) в списки не попадает; all = true — показать всё.
+    list: function (name, all) { var v = Object.values(col(name)); return all ? v : v.filter(function (d) { return !d.deleted; }); },
     get: function (name, key) { return col(name)[key] || null; },
     put: function (name, rec) {
       if (!rec.id) rec.id = id();

@@ -23,9 +23,11 @@
   function setState(s) { state = s; App.show(); }
 
   function stopSync() { unsubs.forEach(function (u) { u(); }); unsubs = []; }
-  function sync(top) {
+  function sync(m) {
     stopSync();
-    COLS.concat(top ? ['requests'] : []).forEach(function (name) {
+    // Закрытые коллекции слушаем только тем, кому правила их показывают.
+    var extra = (Units.isTop(m) ? ['requests'] : []).concat(Units.seesBrief(m) ? ['leads'] : [], m.isAdmin ? ['bugs'] : []);
+    COLS.concat(extra).forEach(function (name) {
       unsubs.push(db.collection(name).onSnapshot(function (snap) {
         Store.load(name, snap.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; }));
       }, function (e) { console.warn('sync', name, e.code); }));
@@ -52,7 +54,7 @@
       var m = d.data(); m.id = d.id;
       if (m.status !== 'active') { stopSync(); return setState('left'); }
       Store.load('members', [m].concat(Store.list('members').filter(function (x) { return x.id !== m.id; })));
-      if (state !== 'in') sync(Units.isTop(m));
+      if (state !== 'in') sync(m);
       state = 'in'; App.show();
     }, function () { if (auth.currentUser && auth.currentUser.uid === user.uid) setState('apply'); });
   }

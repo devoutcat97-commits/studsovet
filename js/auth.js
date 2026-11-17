@@ -54,7 +54,7 @@
     noTabs: true,
     render: function () {
       var s = el('<div class="scroll"><div class="center" style="padding-top:48px">' + LOGO +
-        '<div><h1>Студсовет</h1><p>Алтайский филиал РАНХиГС. Задачи, мероприятия и объявления актива в одном месте.</p></div>' +
+        '<div><h1>Студенческий совет</h1><p>Алтайский филиал РАНХиГС. Задачи, мероприятия и объявления актива в одном месте.</p></div>' +
         '<form class="form" style="padding:0" novalidate>' +
         '<label class="f">Почта<input class="inp" type="email" name="email" autocomplete="email" required></label>' +
         '<label class="f">Пароль<span class="pw"><input class="inp" type="password" name="pass" autocomplete="current-password" required>' +

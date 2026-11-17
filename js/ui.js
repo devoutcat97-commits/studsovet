@@ -86,14 +86,19 @@
     return new Promise(function (done) {
       var d = document.createElement('dialog');
       d.className = 'dlg';
-      d.innerHTML = '<form method="dialog"><p class="dt">' + esc(o.text) + '</p>' + (o.input != null ? '<input class="inp" name="v" maxlength="80" value="' + esc(o.input) + '">' : '') +
+      d.innerHTML = '<form method="dialog"><p class="dt">' + esc(o.text) + '</p>' + (o.area ? '<textarea class="inp" name="v" rows="5" maxlength="2000" placeholder="' + esc(o.area) + '"></textarea>' : o.input != null ? '<input class="inp" name="v" maxlength="80" value="' + esc(o.input) + '">' : '') +
         '<div class="da"><button class="btn ghost sm" value="">' + esc(o.cancel || 'Отмена') + '</button><button class="btn sm' + (o.danger ? ' red' : '') + '" value="ok">' + esc(o.ok || 'Да') + '</button></div></form>';
       document.body.appendChild(d);
-      d.addEventListener('close', function () {
-        var ok = d.returnValue === 'ok', v = d.querySelector('[name=v]');
-        d.remove(); done(ok ? (v ? v.value.trim() || null : true) : (v ? null : false));
-      });
-      d.addEventListener('click', function (e) { if (e.target === d) d.close(''); });
+      // Ответ берём из нажатой кнопки: событие close в некоторых браузерах приходит с опозданием или не приходит.
+      var v = d.querySelector('[name=v]'), finished = false;
+      function finish(ok) {
+        if (finished) return; finished = true;
+        if (d.open) d.close(); d.remove();
+        done(ok ? (v ? v.value.trim() || null : true) : (v ? null : false));
+      }
+      d.querySelector('form').addEventListener('submit', function (e) { e.preventDefault(); finish(!!e.submitter && e.submitter.value === 'ok'); });
+      d.addEventListener('cancel', function (e) { e.preventDefault(); finish(false); });
+      d.addEventListener('click', function (e) { if (e.target === d) finish(false); });
       d.showModal();
       var f = d.querySelector('[name=v]') || d.querySelector('[value=ok]'); f.focus(); if (f.select) f.select();
     });

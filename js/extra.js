@@ -30,6 +30,7 @@
         '<div class="tiles"><div class="tile"><b class="num">' + closed.length + '</b><small>закрыто в ' + MONTH_IN[now.getMonth()] + '</small></div>' +
         '<div class="tile"><b class="num">' + open.length + '</b><small>в работе</small></div>' +
         '<div class="tile' + (late.length ? ' bad' : '') + '"><b class="num">' + late.length + '</b><small>просрочено</small></div></div>' +
+        '<div class="card"><button class="row" id="bugbtn"><svg class="i"><use href="#bug"/></svg><span style="flex:1"><b>Сообщить об ошибке</b><small>Опиши, что пошло не так, — отчёт придёт администратору</small></span><svg class="i"><use href="#next"/></svg></button></div>' +
         '<p class="group">Должности</p><div class="card">' + posts + '</div>' +
         '<p class="group">Мои мероприятия</p><div class="card">' +
         (evs.map(function (e) { return Events.eventRow(e, now); }).join('') || UI.empty('cal', 'Пока нет', 'Здесь будут мероприятия, за которые ты отвечаешь или на которые идёшь.', true)) + '</div>' +
@@ -37,6 +38,16 @@
       var s = el(html);
       s.querySelector('#avain').addEventListener('change', function () {
         if (this.files[0]) Files.setAvatar(this.files[0], me).then(function () { UI.toast('Фото обновлено'); App.show(); }).catch(function (e) { UI.toast(e.message); });
+      });
+      s.querySelector('#bugbtn').addEventListener('click', function () {
+        UI.dialog({ text: 'Что пошло не так?', area: 'Что делал(а), что ожидал(а), что получилось', ok: 'Отправить' }).then(function (text) {
+          if (!text) return;
+          var v = (document.querySelector('script[src*="js/app.js"]') || {}).src || '';
+          var b = Store.put('bugs', { uid: me.id, name: me.name, text: text.slice(0, 2000), status: 'new', at: new Date().toISOString(),
+            device: navigator.userAgent.slice(0, 200), screen: innerWidth + '×' + innerHeight, app: (v.split('?v=')[1] || '') });
+          if (window.Push) Push.notify('bug', b.id);
+          UI.toast('Спасибо! Отчёт отправлен.');
+        });
       });
       var del = s.querySelector('#avadel');
       if (del) del.addEventListener('click', function () {
@@ -63,7 +74,7 @@
         return '<li><span class="pt">' + esc(t.title) + '</span><span class="pw2">' + esc(who(t)) + ' · <span' + (bad ? ' class="late"' : '') + '>' + esc(UI.dueLabel(t.deadline, now)) + '</span></span></li>';
       };
       var html = '<div class="proj">' +
-        '<header class="phead"><span class="logo"><img src="icons/logo-128.png" alt=""></span><span style="flex:1"><b>Студсовет</b><span>' + UI.longDate(now) + '</span></span>' +
+        '<header class="phead"><span class="logo"><img src="icons/logo-128.png" alt=""></span><span style="flex:1"><b>Студенческий совет</b><span>' + UI.longDate(now) + '</span></span>' +
         '<span class="pclock num" id="pclock"></span>' +
         '<button class="ib" id="pfull" aria-label="На весь экран"><svg class="i"><use href="#screen"/></svg></button>' +
         '<button class="ib" data-go="more" aria-label="Выйти из режима проектора"><svg class="i"><use href="#close"/></svg></button></header>' +
