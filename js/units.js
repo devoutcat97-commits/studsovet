@@ -16,8 +16,8 @@
   ];
 
   // Свой оттенок у каждого подразделения: плашки дат, метки. Тёмная тема осветляет его в CSS.
-  var COLORS = { lead: '#951A1D', project: '#2858C8', career: '#0F7B6C', pr: '#C2410C', law: '#6D3FD1',
-    econ: '#9A6700', gmu: '#2F7D32', media: '#C2255C', psy: '#0E7490' };
+  var COLORS = { lead: '#951A1D', project: '#2858C8', career: '#0B6B5E', pr: '#B23A0A', law: '#6D3FD1',
+    econ: '#855A00', gmu: '#2A6F2D', media: '#C2255C', psy: '#0C6680' };
   function color(id) { return COLORS[id] || '#951A1D'; }
 
   // Должности по типу подразделения.

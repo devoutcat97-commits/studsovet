@@ -29,7 +29,8 @@
     var extra = (Units.isTop(m) ? ['requests'] : []).concat(Units.seesBrief(m) ? ['leads'] : [], m.isAdmin ? ['bugs'] : []);
     COLS.concat(extra).forEach(function (name) {
       unsubs.push(db.collection(name).onSnapshot(function (snap) {
-        Store.load(name, snap.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; }));
+        // Id попадает в разметку (data-arg и т. п.): документы с «чужими» символами в id не берём — защита от подстановки кода.
+        Store.load(name, snap.docs.filter(function (d) { return /^[\w-]+$/.test(d.id); }).map(function (d) { var x = d.data(); x.id = d.id; return x; }));
       }, function (e) { console.warn('sync', name, e.code); }));
     });
     OWN.forEach(function (name) {

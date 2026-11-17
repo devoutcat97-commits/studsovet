@@ -108,7 +108,7 @@
         .sort(function (a, b) { return new Date(a.date) - new Date(b.date); }).slice(0, 3);
       var news = unread(me).slice(0, 2);
       var props = Store.list('proposals').filter(function (p) { return p.status === 'pending' && Units.canDecide(me, p); });
-      var place = me.positions.map(function (p) { return Units.unit(p.unitId).name.replace('Актив ', 'актив '); }).join(' · ') || 'Член студсовета';
+      var place = (me.positions || []).map(function (p) { var u = Units.unit(p.unitId); return u ? u.name.replace('Актив ', 'актив ') : ''; }).filter(Boolean).join(' · ') || 'Член студсовета';
       // Неделя: мои задачи со сроком в пределах 7 дней назад и вперёд.
       var wk = Tasks.pick('mine', me).filter(function (t) { return Math.abs(UI.daysBetween(now, new Date(t.deadline))) <= 7; });
       var wkDone = wk.filter(function (t) { return t.status === 'done'; }).length, pct = wk.length ? wkDone / wk.length : 0, C = 2 * Math.PI * 26;
