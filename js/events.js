@@ -94,10 +94,14 @@
       if (month) html += '</div>';
       if (!upcoming.length) html += UI.empty('cal', 'Мероприятий пока нет', 'Создай мероприятие или предложи своё.');
       if (past.length) html += '<p class="group">Прошедшие</p><div class="card">' + past.map(function (e) { return eventRow(e, now); }).join('') + '</div>';
-      var s = el('<div class="bar"><h1>Мероприятия</h1><button class="ib" data-go="search" aria-label="Поиск"><svg class="i"><use href="#search"/></svg></button></div><div class="scroll">' + html + '</div>' +
+      var s = el('<div class="bar"><h1>Мероприятия</h1>' +
+        (Units.canBrief(me) ? '<button class="ib" data-go="importplan" aria-label="Загрузить план из Word"><svg class="i"><use href="#upload"/></svg></button>' : '') +
+        '<button class="ib" id="planout" aria-label="Скачать план в Word"><svg class="i"><use href="#down"/></svg></button>' +
+        '<button class="ib" data-go="search" aria-label="Поиск"><svg class="i"><use href="#search"/></svg></button></div><div class="scroll">' + html + '</div>' +
         '<button class="fab adm flex" data-go="fromtpl"><svg class="i"><use href="#plus"/></svg>Мероприятие</button>' +
         '<button class="fab mem" data-go="propose"><svg class="i"><use href="#bulb"/></svg>Предложить</button>');
       bindDecisions(s, me);
+      s.querySelector('#planout').addEventListener('click', function () { Plan.exportPlan(); });
       return s;
     }
   });
@@ -117,6 +121,10 @@
         '<div class="card" style="display:flex;gap:14px;align-items:center"><span class="plate big u" style="--u:' + Units.color(ev.unitId) + '"><b class="num">' + d.getDate() + '</b>' + UI.plate(ev.date).mon + '</span>' +
         '<div><h2 style="font-size:20px">' + esc(ev.title) + '</h2><small style="color:var(--text-2)">' + UI.longDate(d) + ', ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0') +
         (ev.place ? ' · ' + esc(ev.place) : '') + '<br><span class="udot" style="--u:' + Units.color(ev.unitId) + '"></span>' + esc(u ? u.name : '') + (owner ? ' · отвечает ' + esc(owner.name) : '') + '</small></div></div>' +
+        (ev.level || ev.format || ev.responsible ? '<div class="card"><div class="meta">' +
+          (ev.level ? '<svg class="i"><use href="#layers"/></svg><span>Уровень <b>' + esc(ev.level) + '</b></span>' : '') +
+          (ev.format ? '<svg class="i"><use href="#users"/></svg><span>Формат участия <b>' + esc(ev.format) + '</b></span>' : '') +
+          (ev.responsible ? '<svg class="i"><use href="#user"/></svg><span>По плану отвечает <b>' + esc(ev.responsible) + '</b></span>' : '') + '</div></div>' : '') +
         goingCard(ev, me, now) +
         (ev.idea ? '<div class="card"><p style="font-size:15px">' + esc(ev.idea) + '</p></div>' : '') +
         '<div class="card"><h2>Подготовка <span class="num" style="font-weight:500;font-size:14px;color:var(--text-2)">' + pr.done + ' из ' + pr.total + '</span></h2>' +

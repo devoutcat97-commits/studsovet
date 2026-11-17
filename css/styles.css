@@ -319,3 +319,10 @@ body:has(.projector){max-width:none}
 .check:before,.toggle:before{content:"";position:absolute;inset:-10px}
 .link{min-height:44px;display:inline-flex;align-items:center;gap:6px}
 .chip{min-height:44px}
+
+/* Загрузка плана: строка с полями для проверки */
+.row.imp{align-items:flex-start}.row.imp .cb{width:22px;height:22px;margin-top:2px;accent-color:#951A1D;flex:none}
+.row.imp.warn{background:color-mix(in srgb,var(--gold) 14%,transparent);border-radius:10px;padding-left:8px;padding-right:8px}
+.impf{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px}.impf .inp{height:40px;font-size:14px;padding:0 10px;width:auto;flex:1 1 140px}
+.row.imp small{display:block}
+.btn:disabled{opacity:.5;cursor:not-allowed}

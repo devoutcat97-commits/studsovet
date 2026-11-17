@@ -126,8 +126,10 @@
       (a && /^data:image\/jpeg;base64,/.test(a.data) ? '<img src="' + esc(a.data) + '" alt="">' : initials(m && m.name)) + '</span>';
   }
 
+  function plural(n, a, b, c) { var m = n % 10, h = n % 100; return m === 1 && h !== 11 ? a : m >= 2 && m <= 4 && (h < 12 || h > 14) ? b : c; }
+
   window.UI = {
-    ava: ava,
+    plural: plural, ava: ava,
     toast: toast, dialog: dialog, confirm: confirmDlg, ask: ask, burst: burst,
     skeleton: skeleton, empty: empty, greeting: greeting,
     dueLabel: dueLabel, isOverdue: isOverdue, groupByDue: groupByDue, daysBetween: daysBetween,
