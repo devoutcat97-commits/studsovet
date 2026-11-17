@@ -1,0 +1,132 @@
+rules_version = '2';
+// Правила доступа. Интерфейс только прячет кнопки — по-настоящему защищает этот файл.
+// Логика должна совпадать с js/units.js. Проверки: tests/rules.test.js (эмулятор).
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    function signed() { return request.auth != null; }
+    function self(uid) { return signed() && request.auth.uid == uid; }
+    function meDoc() { return /databases/$(db)/documents/members/$(request.auth.uid); }
+    function me() { return get(meDoc()).data; }
+    function isMember() { return signed() && exists(meDoc()) && me().status == 'active'; }
+    function isAdmin() { return isMember() && me().get('isAdmin', false) == true; }
+    function isTop() { return isMember() && (me().get('isAdmin', false) == true || me().get('lead', null) in ['chair', 'deputy']); }
+    function isSecretary() { return isMember() && me().get('lead', null) == 'secretary'; }
+    function leads(unit) { return isMember() && unit in me().get('heads', []); }
+    // Может ли создавать мероприятия и задачи в подразделении.
+    function manages(unit) { return isTop() || isSecretary() || leads(unit) || (isMember() && me().get('canCreate', false) == true); }
+    function managesAny() { return isTop() || isSecretary() || (isMember() && (me().get('heads', []).size() > 0 || me().get('canCreate', false) == true)); }
+    function ownsEvent(eid) {
+      return eid is string && exists(/databases/$(db)/documents/events/$(eid))
+        && get(/databases/$(db)/documents/events/$(eid)).data.ownerUid == request.auth.uid;
+    }
+    function onlyChanged(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+
+    // Заявка на вступление: каждый пишет только свою и только один раз.
+    match /requests/{uid} {
+      allow create: if self(uid)
+        && request.resource.data.keys().hasOnly(['name', 'email', 'positions', 'at'])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 80;
+      allow read: if self(uid) || isTop();
+      allow delete: if isTop();
+      allow update: if false;
+    }
+
+    // Участники: пишет только руководство; флаг админа ставит только админ.
+    match /members/{uid} {
+      allow read: if isMember() || self(uid);
+      allow create: if isTop() && (request.resource.data.get('isAdmin', false) == false || isAdmin());
+      allow update: if isTop() && (request.resource.data.get('isAdmin', false) == resource.data.get('isAdmin', false) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /events/{id} {
+      allow read: if isMember();
+      allow create: if manages(request.resource.data.unitId);
+      allow update: if manages(resource.data.unitId) || resource.data.ownerUid == request.auth.uid;
+      allow delete: if manages(resource.data.unitId);
+    }
+
+    // Обложка мероприятия: сжатая картинка прямо в базе (до ~300 КБ текста).
+    function canEditEvent(eid) {
+      return exists(/databases/$(db)/documents/events/$(eid))
+        && (manages(get(/databases/$(db)/documents/events/$(eid)).data.unitId) || ownsEvent(eid));
+    }
+    // Фото профиля: ставит и убирает только сам человек; маленький JPEG.
+    match /avatars/{uid} {
+      allow read: if isMember();
+      allow create, update: if self(uid) && isMember() && request.resource.data.data is string
+        && request.resource.data.data.size() < 60000 && request.resource.data.data.matches('data:image/jpeg;base64,.*');
+      allow delete: if self(uid) || isTop();
+    }
+
+    match /covers/{eid} {
+      allow read: if isMember();
+      allow create, update: if canEditEvent(eid) && request.resource.data.data is string
+        && request.resource.data.data.size() < 300000 && request.resource.data.data.matches('data:image/jpeg;base64,.*');
+      allow delete: if canEditEvent(eid);
+    }
+
+    match /tasks/{id} {
+      allow read: if isMember();
+      allow create: if manages(request.resource.data.unitId) || ownsEvent(request.resource.data.get('eventId', null));
+      // Исполнитель меняет только статус своей задачи.
+      allow update: if manages(resource.data.unitId) || ownsEvent(resource.data.get('eventId', null))
+        || (isMember() && resource.data.assigneeUid == request.auth.uid && onlyChanged(['status', 'doneAt']));
+      allow delete: if manages(resource.data.unitId) || ownsEvent(resource.data.get('eventId', null));
+    }
+
+    match /comments/{id} {
+      allow read: if isMember();
+      allow create: if isMember() && request.resource.data.uid == request.auth.uid
+        && request.resource.data.text is string && request.resource.data.text.size() <= 1000;
+      allow delete: if isMember() && resource.data.uid == request.auth.uid;
+    }
+
+    match /templates/{id} {
+      allow read: if isMember();
+      allow write: if managesAny();
+    }
+
+    match /announcements/{id} {
+      allow read: if isMember();
+      allow write: if isTop() || isSecretary();
+    }
+
+    // Отметка «ознакомлен»: документ <объявление>_<uid>, ставит только сам человек.
+    match /reads/{id} {
+      allow read: if isMember();
+      allow create: if isMember() && request.resource.data.uid == request.auth.uid
+        && id == request.resource.data.annId + '_' + request.auth.uid;
+    }
+
+    // Отметка «Иду»: документ <мероприятие>_<uid>, ставит и снимает только сам человек.
+    match /going/{id} {
+      allow read: if isMember();
+      allow create: if isMember() && request.resource.data.uid == request.auth.uid
+        && id == request.resource.data.eventId + '_' + request.auth.uid;
+      allow delete: if isMember() && resource.data.uid == request.auth.uid;
+    }
+
+    match /proposals/{id} {
+      allow read: if isMember();
+      allow create: if isMember() && request.resource.data.authorUid == request.auth.uid
+        && request.resource.data.status == 'pending';
+      // Решает адресат (руководитель/глава подразделения или его зам) и руководство.
+      allow update: if resource.data.status == 'pending'
+        && (isTop() || (resource.data.toUnitId != 'lead' && leads(resource.data.toUnitId)))
+        && onlyChanged(['status', 'decidedBy', 'decidedAt', 'eventId']);
+      allow delete: if isMember() && resource.data.authorUid == request.auth.uid && resource.data.status == 'pending';
+    }
+
+    match /pushTokens/{uid} {
+      allow read, write: if self(uid) && isMember();
+    }
+
+    // Файлы мероприятий записывает только сервер (Apps Script с сервисным доступом).
+    match /files/{id} {
+      allow read: if isMember();
+      allow write: if false;
+    }
+  }
+}

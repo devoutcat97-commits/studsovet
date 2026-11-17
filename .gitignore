@@ -1,0 +1,12 @@
+# В публичный репозиторий идёт только сайт; документы, тесты и сервер остаются на компьютере.
+/*
+!/index.html
+!/manifest.webmanifest
+!/sw.js
+!/css/
+!/js/
+!/icons/
+!/firestore.rules
+!/.nojekyll
+!/.gitignore
+graphify-out/
