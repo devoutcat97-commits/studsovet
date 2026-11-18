@@ -330,3 +330,10 @@ body:has(.projector){max-width:none}
 /* Правка пунктов шаблона перед созданием мероприятия */
 .row.tedit{align-items:flex-start;gap:8px}.row.tedit .inp{height:44px;font-size:15px}.row.tedit .impf{margin:6px 0 2px}.row.tedit .ib{margin-top:0}
 .link.danger{color:var(--late)}
+/* Страница целиком не прокручивается и не «тянется»: прокрутка только внутри .scroll.
+   Иначе на iPhone (100vh > видимой высоты) лист двигается, FAB уезжает,
+   а оттягивание вниз включает обновление браузера вместо нашей звёздочки. */
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+body{min-height:0;position:fixed;inset:0}
+.app{height:100%}
+.scroll{overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}

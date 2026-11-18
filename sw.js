@@ -1,7 +1,7 @@
 /* Работа без интернета: свои файлы берём из кэша, а в фоне обновляем.
    Запросы к Firebase и Apps Script не кэшируем — у них своя логика. */
-var CACHE = 'ss-v29';
-var FILES = ['./', 'index.html', 'css/styles.css?v=18', 'js/cloud-config.js?v=4', 'js/store.js?v=3', 'js/units.js?v=5', 'js/ui.js?v=7', 'js/seed.js?v=2', 'js/app.js?v=11', 'js/tasks.js?v=8', 'js/files.js?v=2', 'js/events.js?v=11', 'js/news.js?v=11', 'js/auth.js?v=5', 'js/plan.js?v=2', 'js/lead.js?v=1', 'js/extra.js?v=3', 'js/search.js?v=2', 'js/push.js?v=2', 'js/cloud.js?v=9', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/logo-128.png', 'icons/badge-96.png'];
+var CACHE = 'ss-v30';
+var FILES = ['./', 'index.html', 'css/styles.css?v=19', 'js/cloud-config.js?v=4', 'js/store.js?v=3', 'js/units.js?v=5', 'js/ui.js?v=7', 'js/seed.js?v=2', 'js/app.js?v=11', 'js/tasks.js?v=8', 'js/files.js?v=2', 'js/events.js?v=11', 'js/news.js?v=11', 'js/auth.js?v=5', 'js/plan.js?v=2', 'js/lead.js?v=1', 'js/extra.js?v=3', 'js/search.js?v=2', 'js/push.js?v=2', 'js/cloud.js?v=9', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/logo-128.png', 'icons/badge-96.png'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(FILES); }).then(function () { return self.skipWaiting(); }));
