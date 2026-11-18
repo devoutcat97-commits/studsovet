@@ -235,24 +235,66 @@
         '<div class="card" style="margin:0" id="preview"></div><p class="hint late" id="err" hidden></p>' +
         '<button class="btn">Создать мероприятие</button></form></div>');
       var f = s.querySelector('form');
+      // Пункты чек-листа можно править до создания: название, срок, удалить, добавить.
+      // daysBefore — «за сколько дней»; пока срок не меняли руками, он едет вместе с датой мероприятия.
+      var items = [];
+      function dayOf(ev, n) { var d = new Date(ev.getTime() - n * DAY); return new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); }
+      function load() { items = chosen ? chosen.items.map(function (it) { return { title: it.text, daysBefore: it.daysBefore, day: null }; }) : []; }
+      function evDate() { return f.date.value ? new Date(f.date.value) : null; }
       function preview() {
-        var box = s.querySelector('#preview'), now = new Date();
-        if (!chosen || !f.date.value) { box.innerHTML = '<p class="hint">Чек-лист будет пустым — пункты добавишь в карточке.</p>'; return; }
-        box.innerHTML = '<h2>Будут созданы задачи</h2>' + fromTemplate(chosen, new Date(f.date.value).toISOString()).map(function (t) {
-          var p = UI.plate(t.deadline), late = new Date(t.deadline) < now;
-          return '<div class="row"><span class="plate"><b class="num">' + p.day + '</b>' + p.mon + '</span><span><b>' + esc(t.title) + '</b><small' + (late ? ' class="late">срок уже прошёл' : '>' + UI.dueLabel(t.deadline, now)) + '</small></span></div>';
-        }).join('');
+        var box = s.querySelector('#preview'), ev = evDate(), today = new Date(new Date().toDateString());
+        box.innerHTML = '<h2>Будут созданы задачи' + (chosen && !chosen.builtin ? ' <button type="button" class="link danger" id="tpldel">Удалить шаблон</button>' : '') + '</h2>' +
+          (items.length ? '' : '<p class="hint" style="padding:6px 0">Пока пусто — добавь задачи или добавишь их потом в карточке.</p>') +
+          items.map(function (it, i) {
+            var day = it.day || (ev ? dayOf(ev, it.daysBefore) : ''), late = day && new Date(day + 'T18:00') < today;
+            return '<div class="row tedit"><span style="flex:1;min-width:0"><input class="inp" data-k="title" data-i="' + i + '" value="' + esc(it.title) + '" maxlength="140" aria-label="Задача ' + (i + 1) + '">' +
+              '<span class="impf"><input class="inp" type="date" data-k="day" data-i="' + i + '" value="' + day + '" aria-label="Срок задачи ' + (i + 1) + '">' +
+              (late ? '<small class="late" style="align-self:center">срок уже прошёл</small>' : '') + '</span></span>' +
+              '<button type="button" class="ib" data-rm="' + i + '" aria-label="Убрать задачу ' + (i + 1) + '"><svg class="i"><use href="#close"/></svg></button></div>';
+          }).join('') +
+          '<button type="button" class="row link" id="tadd"><svg class="i"><use href="#plus"/></svg>Добавить задачу</button>' +
+          (items.length ? '<button type="button" class="row link" id="tsave"><svg class="i"><use href="#layers"/></svg>Сохранить список как свой шаблон</button>' : '');
       }
+      s.querySelector('#preview').addEventListener('input', function (e) {
+        var t = e.target, i = t.dataset.i; if (i == null) return;
+        if (t.dataset.k === 'title') items[i].title = t.value; else { items[i].day = t.value || null; }
+      });
+      s.querySelector('#preview').addEventListener('change', function (e) { if (e.target.dataset.k === 'day') preview(); });
+      s.querySelector('#preview').addEventListener('click', function (e) {
+        var rm = e.target.closest('[data-rm]');
+        if (rm) { items.splice(+rm.dataset.rm, 1); preview(); return; }
+        if (e.target.closest('#tadd')) {
+          items.push({ title: '', daysBefore: 1, day: null }); preview();
+          var ins = s.querySelectorAll('#preview [data-k=title]'); ins[ins.length - 1].focus(); return;
+        }
+        if (e.target.closest('#tsave')) {
+          var ev = evDate(); if (!ev) return UI.toast('Сначала выбери дату мероприятия.');
+          UI.ask('Название шаблона', f.title.value.trim()).then(function (name) {
+            if (!name) return;
+            var list = items.filter(function (it) { return it.title.trim(); }).map(function (it) {
+              return { text: it.title.trim(), daysBefore: it.day ? UI.daysBetween(new Date(it.day + 'T12:00'), ev) : it.daysBefore };
+            });
+            Store.put('templates', { title: name.slice(0, 80), items: list });
+            UI.toast('Шаблон сохранён');
+          });
+          return;
+        }
+        if (e.target.closest('#tpldel')) UI.confirm('Удалить шаблон «' + chosen.title + '»? Уже созданные мероприятия не изменятся.', 'Удалить', true).then(function (ok) {
+          if (!ok) return;
+          var t = Store.get('templates', chosen.id); t.deleted = true; Store.put('templates', t);
+          UI.toast('Шаблон удалён'); App.show();
+        });
+      });
       s.querySelector('.tpl').addEventListener('click', function (e) {
         var b = e.target.closest('[data-t]'); if (!b) return;
         this.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
         chosen = templates().filter(function (t) { return t.id === b.dataset.t; })[0] || null;
         if (chosen && !f.title.value) f.title.value = chosen.title;
-        preview();
+        load(); preview();
       });
       f.date.addEventListener('change', preview);
       f.title.value = chosen ? chosen.title : '';
-      preview();
+      load(); preview();
       f.addEventListener('submit', function (e) {
         e.preventDefault();
         var err = s.querySelector('#err');
@@ -260,8 +302,12 @@
         if (!Units.canManage(me, f.unit.value)) { err.hidden = false; err.textContent = 'Нет прав в этом подразделении.'; return; }
         var iso = new Date(f.date.value).toISOString();
         var ev = Store.put('events', { title: f.title.value.trim(), date: iso, place: f.place.value.trim(), unitId: f.unit.value, ownerUid: me.id, templateId: chosen ? chosen.id : null });
-        if (chosen) fromTemplate(chosen, iso).forEach(function (t) {
-          Store.put('tasks', { title: t.title, deadline: t.deadline, assigneeUid: me.id, unitId: ev.unitId, eventId: ev.id, status: 'todo', createdBy: me.id });
+        var evd = new Date(f.date.value);
+        items.forEach(function (it) {
+          if (!it.title.trim()) return;
+          var d = it.day ? new Date(it.day + 'T18:00') : new Date(evd.getTime() - it.daysBefore * DAY);
+          if (!it.day) d.setHours(18, 0, 0, 0);
+          Store.put('tasks', { title: it.title.trim().slice(0, 140), deadline: d.toISOString(), assigneeUid: me.id, unitId: ev.unitId, eventId: ev.id, status: 'todo', createdBy: me.id });
         });
         App.go('event', ev.id);
       });

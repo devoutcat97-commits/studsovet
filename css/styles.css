@@ -326,3 +326,7 @@ body:has(.projector){max-width:none}
 .impf{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px}.impf .inp{height:40px;font-size:14px;padding:0 10px;width:auto;flex:1 1 140px}
 .row.imp small{display:block}
 .btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* Правка пунктов шаблона перед созданием мероприятия */
+.row.tedit{align-items:flex-start;gap:8px}.row.tedit .inp{height:44px;font-size:15px}.row.tedit .impf{margin:6px 0 2px}.row.tedit .ib{margin-top:0}
+.link.danger{color:var(--late)}

@@ -35,6 +35,8 @@
   // Галочка: выполнено / вернуть. Отмечать может исполнитель или тот, кто управляет подразделением.
   // Ответственный за мероприятие (например, автор одобренного предложения) тоже управляет его задачами.
   function ownsEvent(me, eventId) { var ev = eventId && Store.get('events', eventId); return !!ev && ev.ownerUid === me.id; }
+  // Менять текст, срок, исполнителя и удалять — руководитель подразделения или ответственный за мероприятие.
+  function canManageTask(me, t) { return Units.canManage(me, t.unitId) || ownsEvent(me, t.eventId); }
   function canEdit(me, t) { return t.assigneeUid === me.id || Units.canManage(me, t.unitId) || ownsEvent(me, t.eventId); }
   var justDone = null;
   function bindChecks(root, me) {
@@ -120,12 +122,23 @@
         '<div class="segm" style="margin-top:16px" role="group" aria-label="Статус">' + STATUS.map(function (st) {
           return '<button data-st="' + st[0] + '" aria-pressed="' + (t.status === st[0]) + '"' + (canEdit(me, t) ? '' : ' disabled') + '>' + st[1] + '</button>';
         }).join('') + '</div></div>' +
+        (canManageTask(me, t) && !t.deleted ? '<div class="card"><button class="row" data-go="edittask" data-arg="' + t.id + '"><svg class="i"><use href="#settings"/></svg><span style="flex:1"><b>Изменить задачу</b><small>Название, исполнитель, срок, подробности</small></span><svg class="i"><use href="#next"/></svg></button>' +
+          '<button class="row danger" id="tdel"><svg class="i"><use href="#trash"/></svg><span><b>Удалить задачу</b></span></button></div>' : '') +
         '<div class="card"><h2>Комментарии · ' + list.length + '</h2>' + comments + '</div></div>' +
         '<form class="composer"><input class="inp" name="c" placeholder="Написать комментарий" aria-label="Комментарий" maxlength="1000" required>' +
         '<button class="send" aria-label="Отправить"><svg class="i"><use href="#send"/></svg></button></form>');
       s.querySelector('.segm').addEventListener('click', function (e) {
         var b = e.target.closest('[data-st]'); if (!b || b.disabled) return;
         t.status = b.dataset.st; Store.put('tasks', t); App.show();
+      });
+      var td = s.querySelector('#tdel');
+      if (td) td.addEventListener('click', function () {
+        UI.confirm('Удалить задачу «' + t.title + '»?', 'Удалить', true).then(function (ok) {
+          if (!ok) return;
+          t.deleted = true; Store.put('tasks', t);
+          UI.toast('Задача удалена', 'Вернуть', function () { t.deleted = false; Store.put('tasks', t); App.show(); });
+          App.go(t.eventId ? 'event' : 'tasks', t.eventId || null);
+        });
       });
       s.querySelector('.composer').addEventListener('submit', function (e) {
         e.preventDefault();
@@ -170,6 +183,35 @@
         if (window.Push) Push.notify('task', nt.id);
         UI.toast('Задача создана');
         App.go(f.event.value ? 'event' : 'tasks', f.event.value || null);
+      });
+      return s;
+    }
+  });
+
+  App.screen('edittask', {
+    tab: 'tasks',
+    render: function (id) {
+      var me = App.me(), t = Store.get('tasks', id);
+      var head = '<div class="bar"><button class="ib" data-go="task" data-arg="' + (t ? t.id : '') + '" aria-label="Назад"><svg class="i"><use href="#back"/></svg></button><h1>Изменить задачу</h1></div>';
+      if (!t || !canManageTask(me, t)) return el(head + UI.empty('tasks', 'Нет прав', 'Менять задачу может руководитель подразделения или ответственный за мероприятие.'));
+      var people = Store.list('members').filter(function (m) { return m.status === 'active'; });
+      var d = new Date(t.deadline), local = new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 16);
+      var s = el(head + '<div class="scroll"><form class="form" novalidate>' +
+        '<label class="f">Что сделать<input class="inp" name="title" required maxlength="140" value="' + esc(t.title) + '"></label>' +
+        '<label class="f">Исполнитель<select class="inp" name="who">' + people.map(function (m) { return '<option value="' + m.id + '"' + (m.id === t.assigneeUid ? ' selected' : '') + '>' + esc(m.name) + '</option>'; }).join('') + '</select></label>' +
+        '<label class="f">Срок<input class="inp" type="datetime-local" name="deadline" required value="' + local + '"></label>' +
+        '<label class="f">Подробности <span class="hint">необязательно</span><textarea class="inp" name="details" rows="4" maxlength="2000">' + esc(t.details || '') + '</textarea></label>' +
+        '<p class="hint late" id="err" hidden></p><button class="btn">Сохранить</button></form></div>');
+      var f = s.querySelector('form');
+      f.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!f.title.value.trim() || !f.deadline.value) { var err = s.querySelector('#err'); err.hidden = false; err.textContent = 'Нужны название и срок.'; return; }
+        var moved = f.who.value !== t.assigneeUid;
+        t.title = f.title.value.trim(); t.assigneeUid = f.who.value; t.deadline = new Date(f.deadline.value).toISOString(); t.details = f.details.value.trim();
+        Store.put('tasks', t);
+        if (moved && window.Push) Push.notify('task', t.id);
+        UI.toast('Задача сохранена');
+        App.go('task', t.id);
       });
       return s;
     }
