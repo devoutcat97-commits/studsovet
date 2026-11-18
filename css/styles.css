@@ -337,3 +337,5 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none}
 body{min-height:0;position:fixed;inset:0}
 .app{height:100%}
 .scroll{overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
+
+.row.imp textarea.inp{width:100%;font-size:14px;margin-top:2px}

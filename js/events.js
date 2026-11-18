@@ -96,6 +96,7 @@
       if (past.length) html += '<p class="group">Прошедшие</p><div class="card">' + past.map(function (e) { return eventRow(e, now); }).join('') + '</div>';
       var s = el('<div class="bar"><h1>Мероприятия</h1>' +
         (Units.canBrief(me) ? '<button class="ib" data-go="importplan" aria-label="Загрузить план из Word"><svg class="i"><use href="#upload"/></svg></button>' : '') +
+        (Units.canManageAny(me) ? '<button class="ib" data-go="report" aria-label="Отчёт за месяц"><svg class="i"><use href="#doc"/></svg></button>' : '') +
         '<button class="ib" id="planout" aria-label="Скачать план в Word"><svg class="i"><use href="#down"/></svg></button>' +
         '<button class="ib" data-go="search" aria-label="Поиск"><svg class="i"><use href="#search"/></svg></button></div><div class="scroll">' + html + '</div>' +
         '<button class="fab adm flex" data-go="fromtpl"><svg class="i"><use href="#plus"/></svg>Мероприятие</button>' +

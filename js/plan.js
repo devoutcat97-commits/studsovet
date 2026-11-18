@@ -32,6 +32,22 @@
     }
     return Promise.reject(new Error('В файле нет текста документа.'));
   }
+  // Все файлы архива: { имя: байты } — чтобы собрать документ заново по шаблону.
+  function unzipAll(buf) {
+    var b = new Uint8Array(buf), e = b.length - 22, out = {}, jobs = [];
+    while (e >= 0 && u32(b, e) !== 0x06054b50) e--;
+    if (e < 0) return Promise.reject(new Error('Шаблон повреждён.'));
+    var n = u16(b, e + 10), p = u32(b, e + 16);
+    for (var i = 0; i < n; i++) {
+      var method = u16(b, p + 10), size = u32(b, p + 20), nl = u16(b, p + 28), xl = u16(b, p + 30), cl = u16(b, p + 32), off = u32(b, p + 42);
+      var name = new TextDecoder().decode(b.subarray(p + 46, p + 46 + nl));
+      var start = off + 30 + u16(b, off + 26) + u16(b, off + 28), data = b.subarray(start, start + size);
+      jobs.push((function (nm, m, d) { return (m === 8 ? inflate(d) : Promise.resolve(d)).then(function (r) { out[nm] = r; }); })(name, method, data));
+      p += 46 + nl + xl + cl;
+    }
+    return Promise.all(jobs).then(function () { return out; });
+  }
+
   // Все таблицы документа → массивы строк → массивы текстов ячеек (абзацы через перевод строки).
   function tablesFrom(xml) {
     var doc = new DOMParser().parseFromString(xml, 'application/xml');
@@ -239,7 +255,7 @@
     var enc = new TextEncoder(), parts = [], dir = [], off = 0;
     function h(n, v) { var a = []; for (var i = 0; i < n; i++) a.push((v >>> (8 * i)) & 255); return a; }
     files.forEach(function (f) {
-      var name = enc.encode(f[0]), data = enc.encode(f[1]), c = crc32(data);
+      var name = enc.encode(f[0]), data = typeof f[1] === 'string' ? enc.encode(f[1]) : f[1], c = crc32(data);
       var head = [].concat(h(4, 0x04034b50), h(2, 20), h(2, 0x0800), h(2, 0), h(4, 0), h(4, c), h(4, data.length), h(4, data.length), h(2, name.length), h(2, 0));
       parts.push(new Uint8Array(head), name, data);
       dir.push(new Uint8Array([].concat(h(4, 0x02014b50), h(2, 20), h(2, 20), h(2, 0x0800), h(2, 0), h(4, 0), h(4, c), h(4, data.length), h(4, data.length),
@@ -295,5 +311,5 @@
     UI.toast('Скачан план: ' + r.count + ' ' + UI.plural(r.count, 'мероприятие', 'мероприятия', 'мероприятий'));
   }
 
-  window.Plan = { planDocx: planDocx, exportPlan: exportPlan, recognize: recognize, tablesFrom: tablesFrom, unzipFile: unzipFile, parseDate: parseDate };
+  window.Plan = { unzipAll: unzipAll, zip: zip, planDocx: planDocx, exportPlan: exportPlan, recognize: recognize, tablesFrom: tablesFrom, unzipFile: unzipFile, parseDate: parseDate };
 })();

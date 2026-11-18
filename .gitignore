@@ -6,6 +6,7 @@
 !/css/
 !/js/
 !/icons/
+!/assets/
 !/firestore.rules
 !/.nojekyll
 !/.gitignore
